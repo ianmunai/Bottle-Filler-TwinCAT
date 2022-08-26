@@ -1,0 +1,443 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.11">
+  <POU Name="MAIN" Id="{43aac240-289a-499e-9e9d-068328e9170a}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM MAIN
+VAR
+	//outputs
+	bConveyorMotor,bAutoLight,bManualLight,bInletValve:BOOL;
+	
+	//inputs
+	bSensor1,bResetButton,bStopButton,bStartButton:BOOL;
+	iSelectorSwitch:DINT;
+	bSensor2,bSensor3:BOOL;
+	bForwardButton,bReverseButton:BOOL;
+	
+	bManualMode:BOOL;
+	bAutoMode:BOOL;
+	bOffMode:BOOL;
+	bLiquidTank:BOOL;
+	
+	
+	bBottle1,bBottle2,bBottle3:BOOL; //state variables
+	iState:DINT;
+	fbMyTimer:ton;
+	iTotalBottles:DINT;
+	bLoadBottle, bRemoveBottle:BOOL;
+	fbMyTimer2:TON;
+	iState2:UDINT;
+	bForwardMode,bReverseMode:BOOL;
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//remember to see why it does not work in the case statement
+IF bRemoveBottle THEN
+		bRemoveBottle:=FALSE;
+		bBottle3:=FALSE;
+		bSensor3:=FALSE;						
+		END_IF	
+
+		
+(*CASE iState2 OF
+	0: IF bManualMode THEN
+		iState2:=20;
+		ELSIF bAutoMode THEN
+			iState2:=10;
+		END_IF
+	10:	(*..................................AUTOMATIC MODE..............................................*)
+				bManualMode:=FALSE;
+				bAutoLight:=TRUE;
+				bManualLight:=FALSE;
+				//this is a state machine so we use CASE statement!
+					IF bLoadBottle THEN
+						bLoadBottle:=FALSE;
+						bBottle1:=TRUE;
+						IF bBottle1 THEN
+							bSensor1:=TRUE;
+					END_IF
+				END_IF;
+				
+				IF bBottle1 AND NOT bBottle2 THEN
+					bBottle1:=FALSE; bSensor1:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!
+				END_IF
+	
+				CASE iState OF
+				0: IF bBottle2 THEN
+					iState:=10;
+					END_IF
+				
+				10: //we just got a bottle, let's fill it!
+					IF  bBottle2 THEN 
+						bSensor2:=TRUE;
+						bInletValve:=TRUE;	
+					END_IF
+					fbMyTimer(in:=bBottle2,pt:=T#6S);
+					IF fbMyTimer.Q THEN
+						//bBottle2:=TRUE; //to change the color variable!
+						bInletValve:=FALSE;
+						fbMyTimer(in:=FALSE);
+					
+						iState:=20;
+					END_IF
+					
+				20: //now we get the bottle of the conveyor
+					IF bBottle2 AND NOT bBottle3 THEN
+						bBottle2:=FALSE; bBottle3:=TRUE; bSensor2:=FALSE; bSensor3:=TRUE;
+						iState:=30;
+						END_IF
+						 
+				30: //we now want to count the number of bottles counted!
+					iTotalBottles:=	iTotalBottles +1;
+						iState:=0;
+				END_CASE 
+				
+	20:
+		(*..........................................MANUAL MODE............................................*)
+				
+									(*...................FORWARD DIRECTION...............*)
+				bManualMode:=TRUE;
+				bAutoLight:=FALSE;
+				bManualLight:=TRUE;
+				//this is a state machine so we use CASE statement!
+					IF bForwardButton THEN
+						bForwardButton:=FALSE;
+						bBottle1:=TRUE;
+						IF bBottle1 THEN
+							bSensor1:=TRUE;
+					END_IF
+				END_IF;
+				
+				IF bBottle1 AND NOT bBottle2 THEN
+					bBottle1:=FALSE; bSensor1:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!
+				END_IF
+	
+				CASE iState OF
+				0: IF bBottle2 THEN
+					iState:=10;
+					END_IF
+				
+				10: //we just got a bottle, let's fill it!
+					IF  bBottle2 THEN 
+						bSensor2:=TRUE;
+						//bInletValve:=TRUE;	
+					END_IF
+					fbMyTimer(in:=bInletValve,pt:=T#6S);
+					IF fbMyTimer.Q THEN
+						//bBottle2:=TRUE; //to change the color variable!
+						bInletValve:=FALSE;
+						fbMyTimer(in:=FALSE);
+					
+						iState:=20;
+					END_IF
+					
+				20: //now we get the bottle of the conveyor
+					IF bBottle2 AND NOT bBottle3 THEN
+						bBottle2:=FALSE; bBottle3:=TRUE; bSensor2:=FALSE; bSensor3:=TRUE;
+						iState:=30;
+						END_IF
+						 
+				30: //we now want to count the number of bottles counted!
+					iTotalBottles:=	iTotalBottles +1;
+						iState:=0;
+				END_CASE 
+				
+				
+				
+				(*...................................REVERSE DIRECTION...............................*)
+				bManualMode:=TRUE;
+				bAutoLight:=FALSE;
+				bManualLight:=TRUE;
+				//this is a state machine so we use CASE statement!
+					IF bReverseButton THEN
+						bReverseButton:=FALSE;
+						bBottle3:=TRUE;
+						IF bBottle3 THEN
+							bSensor3:=TRUE;
+					END_IF
+				END_IF;
+				
+				IF bBottle3 AND NOT bBottle2 THEN
+					bBottle3:=FALSE; bSensor3:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!
+				END_IF
+	
+				CASE iState OF
+				0: IF bBottle2 THEN
+					iState:=10;
+					END_IF
+				
+				10: //we just got a bottle, let's fill it!
+					IF  bBottle2 THEN 
+						bSensor2:=TRUE;
+						//bInletValve:=TRUE;	
+					END_IF
+					fbMyTimer(in:=bInletValve,pt:=T#6S);
+					IF fbMyTimer.Q THEN
+						//bBottle2:=TRUE; //to change the color variable!
+						bInletValve:=FALSE;
+						fbMyTimer(in:=FALSE);
+					
+						iState:=20;
+					END_IF
+					
+				20: //now we get the bottle of the conveyor
+					IF bBottle2 AND NOT bBottle1 THEN
+						bBottle2:=FALSE; bBottle1:=TRUE; bSensor2:=FALSE; bSensor1:=TRUE;
+						iState:=25;
+						END_IF
+						
+				25: bBottle1:=FALSE;  bSensor1:=FALSE;
+						
+						iState:=30;
+						 
+				30: //we now want to count the number of bottles counted!
+					iTotalBottles:=	iTotalBottles +1;
+						iState:=0;
+				END_CASE 
+END_CASE*)
+
+
+IF bAutoMode THEN
+		bManualMode:=FALSE;
+				bAutoLight:=TRUE;
+				bManualLight:=FALSE;
+				//this is a state machine so we use CASE statement!
+					IF bLoadBottle THEN
+						bLoadBottle:=FALSE;
+						bBottle1:=TRUE;
+						IF bBottle1 THEN
+							bSensor1:=TRUE;
+					END_IF
+				END_IF;
+				
+				IF bBottle1 AND NOT bBottle2 THEN
+					bBottle1:=FALSE; bSensor1:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!
+				END_IF
+	
+				CASE iState OF
+				0: IF bBottle2 THEN
+					iState:=10;
+					END_IF
+				
+				10: //we just got a bottle, let's fill it!
+					IF  bBottle2 THEN 
+						bSensor2:=TRUE;
+						bInletValve:=TRUE;	
+					END_IF
+					fbMyTimer(in:=bBottle2,pt:=T#6S);
+					IF fbMyTimer.Q THEN
+						//bBottle2:=TRUE; //to change the color variable!
+						bInletValve:=FALSE;
+						fbMyTimer(in:=FALSE);
+					
+						iState:=20;
+					END_IF
+					
+				20: //now we get the bottle of the conveyor
+					IF bBottle2 AND NOT bBottle3 THEN
+						bBottle2:=FALSE; bBottle3:=TRUE; bSensor2:=FALSE; bSensor3:=TRUE;
+						iState:=30;
+						END_IF
+						 
+				30: //we now want to count the number of bottles counted!
+					iTotalBottles:=	iTotalBottles +1;
+						iState:=0;
+				END_CASE 
+END_IF
+
+
+IF bManualMode THEN	
+	bManualLight:=TRUE;
+	IF bReverseMode THEN
+		bManualMode:=TRUE;
+				bAutoLight:=FALSE;
+				bManualLight:=TRUE;
+				//this is a state machine so we use CASE statement!
+					IF bReverseButton THEN
+						bReverseButton:=FALSE;
+						bBottle3:=TRUE;
+						IF bBottle3 THEN
+							bSensor3:=TRUE;
+					END_IF
+				END_IF;
+				
+				IF bBottle3 AND NOT bBottle2 THEN
+					bBottle3:=FALSE; bSensor3:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!
+				END_IF
+	
+				CASE iState OF
+				0: IF bBottle2 THEN
+					iState:=10;
+					END_IF
+				
+				10: //we just got a bottle, let's fill it!
+					IF  bBottle2 THEN 
+						bSensor2:=TRUE;
+						//bInletValve:=TRUE;	
+					END_IF
+					fbMyTimer(in:=bInletValve,pt:=T#6S);
+					IF fbMyTimer.Q THEN
+						//bBottle2:=TRUE; //to change the color variable!
+						bInletValve:=FALSE;
+						fbMyTimer(in:=FALSE);
+					
+						iState:=20;
+					END_IF
+					
+				20: //now we get the bottle of the conveyor
+					IF bBottle2 AND NOT bBottle1 THEN
+						bBottle2:=FALSE; bBottle1:=TRUE; bSensor2:=FALSE; bSensor1:=TRUE;
+						iState:=25;
+						END_IF
+						
+				25: bBottle1:=FALSE;  bSensor1:=FALSE;
+						
+						iState:=30;
+						 
+				30: //we now want to count the number of bottles counted!
+					iTotalBottles:=	iTotalBottles +1;
+						iState:=0;
+				END_CASE 
+				
+		
+		ELSIF bForwardMode THEN
+				(*...................FORWARD DIRECTION...............*)
+				bManualMode:=TRUE;
+				bAutoLight:=FALSE;
+				bManualLight:=TRUE;
+				//this is a state machine so we use CASE statement!
+					IF bForwardButton THEN
+						bForwardButton:=FALSE;
+						bBottle1:=TRUE;
+						IF bBottle1 THEN
+							bSensor1:=TRUE;
+					END_IF
+				END_IF;
+				
+				IF bBottle1 AND NOT bBottle2 THEN
+					bBottle1:=FALSE; bSensor1:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!
+				END_IF
+	
+				CASE iState OF
+				0: IF bBottle2 THEN
+					iState:=10;
+					END_IF
+				
+				10: //we just got a bottle, let's fill it!
+					IF  bBottle2 THEN 
+						bSensor2:=TRUE;
+						//bInletValve:=TRUE;	
+					END_IF
+					fbMyTimer(in:=bInletValve,pt:=T#6S);
+					IF fbMyTimer.Q THEN
+						//bBottle2:=TRUE; //to change the color variable!
+						bInletValve:=FALSE;
+						fbMyTimer(in:=FALSE);
+					
+						iState:=20;
+					END_IF
+					
+				20: //now we get the bottle of the conveyor
+					IF bBottle2 AND NOT bBottle3 THEN
+						bBottle2:=FALSE; bBottle3:=TRUE; bSensor2:=FALSE; bSensor3:=TRUE;
+						iState:=30;
+						END_IF
+						 
+				30: //we now want to count the number of bottles counted!
+					iTotalBottles:=	iTotalBottles +1;
+						iState:=0;
+				END_CASE 
+				
+	END_IF
+	
+END_IF
+
+
+
+	
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="642" Count="0" />
+      <LineId Id="637" Count="2" />
+      <LineId Id="641" Count="0" />
+      <LineId Id="636" Count="0" />
+      <LineId Id="673" Count="0" />
+      <LineId Id="672" Count="0" />
+      <LineId Id="674" Count="1" />
+      <LineId Id="723" Count="0" />
+      <LineId Id="773" Count="0" />
+      <LineId Id="775" Count="0" />
+      <LineId Id="724" Count="0" />
+      <LineId Id="726" Count="0" />
+      <LineId Id="728" Count="44" />
+      <LineId Id="776" Count="0" />
+      <LineId Id="778" Count="0" />
+      <LineId Id="886" Count="0" />
+      <LineId Id="779" Count="0" />
+      <LineId Id="990" Count="0" />
+      <LineId Id="945" Count="44" />
+      <LineId Id="840" Count="3" />
+      <LineId Id="1007" Count="39" />
+      <LineId Id="1053" Count="1" />
+      <LineId Id="1056" Count="0" />
+      <LineId Id="1055" Count="0" />
+      <LineId Id="1047" Count="4" />
+      <LineId Id="999" Count="0" />
+      <LineId Id="1057" Count="1" />
+      <LineId Id="1071" Count="0" />
+      <LineId Id="1118" Count="44" />
+      <LineId Id="1476" Count="0" />
+      <LineId Id="1265" Count="0" />
+      <LineId Id="1062" Count="0" />
+      <LineId Id="1061" Count="0" />
+      <LineId Id="1264" Count="0" />
+      <LineId Id="1065" Count="0" />
+      <LineId Id="1167" Count="48" />
+      <LineId Id="1166" Count="0" />
+      <LineId Id="1070" Count="0" />
+      <LineId Id="1067" Count="0" />
+      <LineId Id="1217" Count="46" />
+      <LineId Id="1068" Count="0" />
+      <LineId Id="1063" Count="1" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="669" Count="1" />
+      <LineId Id="615" Count="1" />
+      <LineId Id="139" Count="0" />
+      <LineId Id="253" Count="5" />
+      <LineId Id="582" Count="0" />
+      <LineId Id="263" Count="12" />
+      <LineId Id="252" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

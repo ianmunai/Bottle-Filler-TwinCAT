@@ -40,6 +40,9 @@ END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[//remember to see why it does not work in the case statement
+
+(* Added this comment to second commit*)
+
 IF bRemoveBottle THEN
 		bRemoveBottle:=FALSE;
 		bBottle3:=FALSE;
@@ -389,6 +392,9 @@ END_IF
     </Implementation>
     <LineIds Name="MAIN">
       <LineId Id="642" Count="0" />
+      <LineId Id="1514" Count="0" />
+      <LineId Id="1513" Count="0" />
+      <LineId Id="1515" Count="0" />
       <LineId Id="637" Count="2" />
       <LineId Id="641" Count="0" />
       <LineId Id="636" Count="0" />

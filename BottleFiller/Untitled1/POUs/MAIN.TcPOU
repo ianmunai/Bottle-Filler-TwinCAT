@@ -8,28 +8,35 @@ VAR
 	
 	//inputs
 	bSensor1,bResetButton,bStopButton,bStartButton:BOOL;
-	iSelectorSwitch:DINT;
 	bSensor2,bSensor3:BOOL;
 	bForwardButton,bReverseButton:BOOL;
+	bLoadBottle, bRemoveBottle:BOOL;
+
+	//triggers
+	fbMyTrigger:r_trig;
+	fbMyTrigger2:r_trig;
 	
+	//state variables
+	bBottle1,bBottle2,bBottle3:BOOL; 
+	bLiquidTank:BOOL;
+	
+	//States
+	bForwardMode,bReverseMode:BOOL;
 	bManualMode:BOOL;
 	bAutoMode:BOOL;
 	bOffMode:BOOL;
-	bLiquidTank:BOOL;
 	
-	
-	bBottle1,bBottle2,bBottle3:BOOL; //state variables
-	iState:DINT;
+	//timers
 	fbMyTimer:ton;
-	iTotalBottles:DINT;
-	bLoadBottle, bRemoveBottle:BOOL;
 	fbMyTimer2:TON;
+	fbMyTimer3:ton;
+	fbMyTimer4:ton;
+	
+	//dints
+	iTotalBottles:DINT;
+	iState:DINT;
+	iSelectorSwitch:DINT;
 	iState2:UDINT;
-	bForwardMode,bReverseMode:BOOL;
-	
-	
-	
-	
 	
 	
 	
@@ -40,9 +47,6 @@ END_VAR
 ]]></Declaration>
     <Implementation>
       <ST><![CDATA[//remember to see why it does not work in the case statement
-
-(* Added this comment to second commit*)
-
 IF bRemoveBottle THEN
 		bRemoveBottle:=FALSE;
 		bBottle3:=FALSE;
@@ -206,13 +210,22 @@ IF bRemoveBottle THEN
 						iState:=0;
 				END_CASE 
 END_CASE*)
+//IF bAutoMode THEN
+//	bAutoMode:=FALSE;
+//	bAutoLight:=TRUE; bManualMode:=FALSE; bManualLight:=FALSE;
+	
+//ELSIF bManualMode THEN
+//			bManualMode:=FALSE; //like using an r_trig. always be careful with these!
+//			bManualLight:=TRUE; bAutoLight:=FALSE; bAutoMode:=FALSE;
+//END_IF		 
 
-
-IF bAutoMode THEN
-		bManualMode:=FALSE;
-				bAutoLight:=TRUE;
+IF  bAutoMode THEN
 				bManualLight:=FALSE;
-				//this is a state machine so we use CASE statement!
+				bManualMode:=FALSE;
+				bAutoLight:=TRUE;
+				//bAutoMode:=FALSE;
+				
+		//this is a state machine so we use CASE statement!
 					IF bLoadBottle THEN
 						bLoadBottle:=FALSE;
 						bBottle1:=TRUE;
@@ -222,11 +235,27 @@ IF bAutoMode THEN
 				END_IF;
 				
 				IF bBottle1 AND NOT bBottle2 THEN
-					bBottle1:=FALSE; bSensor1:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!
+					bConveyorMotor:=TRUE;
+					bSensor1:=TRUE;
+					fbMyTimer4(in:=bBottle1,pt:=T#1S);
+						IF fbMyTimer4.Q THEN
+							fbMyTimer4(in:=FALSE);
+								bBottle1:=FALSE; bSensor1:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!					
+							END_IF
 				END_IF
-	
+				IF bStopButton THEN
+					iState:=999;		
+					bStopButton:=FALSE;							
+				IF bResetButton THEN
+					bAutoMode:=FALSE; 
+					bBottle2:=FALSE;
+					iState:=0;
+					bResetButton:=FALSE;
+					
+				END_IF
+		END_IF
 				CASE iState OF
-				0: IF bBottle2 THEN
+				0: IF bBottle2 THEN									
 					iState:=10;
 					END_IF
 				
@@ -235,7 +264,7 @@ IF bAutoMode THEN
 						bSensor2:=TRUE;
 						bInletValve:=TRUE;	
 					END_IF
-					fbMyTimer(in:=bBottle2,pt:=T#6S);
+					fbMyTimer(in:=bBottle2,pt:=T#2S);
 					IF fbMyTimer.Q THEN
 						//bBottle2:=TRUE; //to change the color variable!
 						bInletValve:=FALSE;
@@ -252,20 +281,36 @@ IF bAutoMode THEN
 						 
 				30: //we now want to count the number of bottles counted!
 					iTotalBottles:=	iTotalBottles +1;
-						iState:=0;
+						iState:=40;
+						
+				40:  fbMyTimer2(in:=bBottle3,pt:=T#998MS);
+						IF fbMyTimer2.Q THEN
+							fbMyTimer2(in:=FALSE);
+							bBottle3:=FALSE;
+							bSensor3:=FALSE;
+							bBottle1:=TRUE;				
+							iState:=10;
+						END_IF
 				END_CASE 
+				
+	
 END_IF
+(*.....note this commented endif is to try out the auto and man lights.....*)
 
 
-IF bManualMode THEN	
-	bManualLight:=TRUE;
+IF bManualMode THEN
+		bManualLight:=TRUE;
+		bAutoLight:=FALSE;
+		bAutoMode:=FALSE;
+	
 	IF bReverseMode THEN
+		 
 		bManualMode:=TRUE;
 				bAutoLight:=FALSE;
 				bManualLight:=TRUE;
 				//this is a state machine so we use CASE statement!
 					IF bReverseButton THEN
-						bReverseButton:=FALSE;
+						//bReverseButton:=FALSE;
 						bBottle3:=TRUE;
 						IF bBottle3 THEN
 							bSensor3:=TRUE;
@@ -309,10 +354,16 @@ IF bManualMode THEN
 					iTotalBottles:=	iTotalBottles +1;
 						iState:=0;
 				END_CASE 
-				
+			bReverseMode:=FALSE;
 		
 		ELSIF bForwardMode THEN
 				(*...................FORWARD DIRECTION...............*)
+				IF bStopButton THEN
+					bBottle3:=FALSE;
+					bSensor3:=FALSE;
+					bStopButton:=FALSE;							
+						END_IF
+			//bForwardMode:=FALSE;
 				bManualMode:=TRUE;
 				bAutoLight:=FALSE;
 				bManualLight:=TRUE;
@@ -324,10 +375,19 @@ IF bManualMode THEN
 							bSensor1:=TRUE;
 					END_IF
 				END_IF;
-				
 				IF bBottle1 AND NOT bBottle2 THEN
-					bBottle1:=FALSE; bSensor1:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!
+					bConveyorMotor:=TRUE;
+					bSensor1:=TRUE;
+					fbMyTimer4(in:=bBottle1,pt:=T#1S);
+						IF fbMyTimer4.Q THEN
+							fbMyTimer4(in:=FALSE);
+								bBottle1:=FALSE; bSensor1:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!					
+							END_IF
 				END_IF
+				
+//				IF bBottle1 AND NOT bBottle2 THEN
+//					bBottle1:=FALSE; bSensor1:=FALSE; bBottle2:=TRUE; //this simulates the conveyor!
+//				END_IF
 	
 				CASE iState OF
 				0: IF bBottle2 THEN
@@ -339,7 +399,7 @@ IF bManualMode THEN
 						bSensor2:=TRUE;
 						//bInletValve:=TRUE;	
 					END_IF
-					fbMyTimer(in:=bInletValve,pt:=T#6S);
+					fbMyTimer(in:=bInletValve,pt:=T#2S);
 					IF fbMyTimer.Q THEN
 						//bBottle2:=TRUE; //to change the color variable!
 						bInletValve:=FALSE;
@@ -356,16 +416,26 @@ IF bManualMode THEN
 						 
 				30: //we now want to count the number of bottles counted!
 					iTotalBottles:=	iTotalBottles +1;
-						iState:=0;
+						
+						iState:=40;
+						
+				40:	fbMyTimer2(in:=bBottle3,pt:=T#998MS);
+						IF fbMyTimer2.Q THEN
+							fbMyTimer2(in:=FALSE);
+							bBottle3:=FALSE;
+							bSensor3:=FALSE;
+							bBottle1:=TRUE;				
+							iState:=10;
+						END_IF
 				END_CASE 
 				
+			
 	END_IF
+	
 	
 END_IF
 
 
-
-	
 	
 	
 
@@ -390,5 +460,112 @@ END_IF
 
 ]]></ST>
     </Implementation>
+    <LineIds Name="MAIN">
+      <LineId Id="642" Count="0" />
+      <LineId Id="637" Count="2" />
+      <LineId Id="641" Count="0" />
+      <LineId Id="636" Count="0" />
+      <LineId Id="673" Count="0" />
+      <LineId Id="672" Count="0" />
+      <LineId Id="674" Count="1" />
+      <LineId Id="723" Count="0" />
+      <LineId Id="773" Count="0" />
+      <LineId Id="775" Count="0" />
+      <LineId Id="724" Count="0" />
+      <LineId Id="726" Count="0" />
+      <LineId Id="728" Count="44" />
+      <LineId Id="776" Count="0" />
+      <LineId Id="778" Count="0" />
+      <LineId Id="886" Count="0" />
+      <LineId Id="779" Count="0" />
+      <LineId Id="990" Count="0" />
+      <LineId Id="945" Count="44" />
+      <LineId Id="840" Count="3" />
+      <LineId Id="1007" Count="39" />
+      <LineId Id="1053" Count="1" />
+      <LineId Id="1056" Count="0" />
+      <LineId Id="1055" Count="0" />
+      <LineId Id="1047" Count="4" />
+      <LineId Id="999" Count="0" />
+      <LineId Id="1688" Count="7" />
+      <LineId Id="1058" Count="0" />
+      <LineId Id="1071" Count="0" />
+      <LineId Id="1762" Count="0" />
+      <LineId Id="1709" Count="1" />
+      <LineId Id="1707" Count="0" />
+      <LineId Id="1808" Count="0" />
+      <LineId Id="1121" Count="9" />
+      <LineId Id="1824" Count="0" />
+      <LineId Id="1621" Count="0" />
+      <LineId Id="1614" Count="0" />
+      <LineId Id="1616" Count="1" />
+      <LineId Id="1619" Count="0" />
+      <LineId Id="1618" Count="0" />
+      <LineId Id="1132" Count="0" />
+      <LineId Id="1622" Count="0" />
+      <LineId Id="1825" Count="0" />
+      <LineId Id="1626" Count="0" />
+      <LineId Id="1629" Count="0" />
+      <LineId Id="1827" Count="0" />
+      <LineId Id="1829" Count="0" />
+      <LineId Id="1828" Count="0" />
+      <LineId Id="1632" Count="0" />
+      <LineId Id="1630" Count="1" />
+      <LineId Id="1133" Count="0" />
+      <LineId Id="1596" Count="0" />
+      <LineId Id="1546" Count="0" />
+      <LineId Id="1136" Count="25" />
+      <LineId Id="1522" Count="1" />
+      <LineId Id="1530" Count="0" />
+      <LineId Id="1535" Count="0" />
+      <LineId Id="1533" Count="0" />
+      <LineId Id="1555" Count="1" />
+      <LineId Id="1594" Count="0" />
+      <LineId Id="1532" Count="0" />
+      <LineId Id="1162" Count="0" />
+      <LineId Id="1807" Count="0" />
+      <LineId Id="1758" Count="0" />
+      <LineId Id="1476" Count="0" />
+      <LineId Id="1265" Count="0" />
+      <LineId Id="1760" Count="0" />
+      <LineId Id="1062" Count="0" />
+      <LineId Id="1061" Count="0" />
+      <LineId Id="1763" Count="0" />
+      <LineId Id="1715" Count="0" />
+      <LineId Id="1805" Count="0" />
+      <LineId Id="1830" Count="0" />
+      <LineId Id="1065" Count="0" />
+      <LineId Id="1831" Count="0" />
+      <LineId Id="1167" Count="48" />
+      <LineId Id="1166" Count="0" />
+      <LineId Id="1070" Count="0" />
+      <LineId Id="1067" Count="0" />
+      <LineId Id="1217" Count="0" />
+      <LineId Id="1843" Count="3" />
+      <LineId Id="1842" Count="0" />
+      <LineId Id="1832" Count="0" />
+      <LineId Id="1218" Count="10" />
+      <LineId Id="1891" Count="7" />
+      <LineId Id="1890" Count="0" />
+      <LineId Id="1229" Count="31" />
+      <LineId Id="1837" Count="0" />
+      <LineId Id="1261" Count="0" />
+      <LineId Id="1899" Count="0" />
+      <LineId Id="1901" Count="6" />
+      <LineId Id="1900" Count="0" />
+      <LineId Id="1262" Count="0" />
+      <LineId Id="1833" Count="0" />
+      <LineId Id="1263" Count="0" />
+      <LineId Id="1068" Count="0" />
+      <LineId Id="1759" Count="0" />
+      <LineId Id="1063" Count="1" />
+      <LineId Id="117" Count="0" />
+      <LineId Id="669" Count="0" />
+      <LineId Id="615" Count="1" />
+      <LineId Id="253" Count="5" />
+      <LineId Id="582" Count="0" />
+      <LineId Id="263" Count="12" />
+      <LineId Id="252" Count="0" />
+    </LineIds>
   </POU>
 </TcPlcObject>
